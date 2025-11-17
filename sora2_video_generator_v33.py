@@ -20,7 +20,7 @@ from tkinter.scrolledtext import ScrolledText
 import requests
 from curl_cffi import requests as curl_requests
 from language_config import lang_manager
-from profile_manager import ProfileManager, ProfileInfo, calculate_credits
+from profile_manager import ProfileManager, ProfileInfo
 from profile_token_manager import ProfileTokenManager
 from text_to_video_tab import TextToVideoTab
 from sora_api_client import SoraAPIClient
@@ -333,6 +333,7 @@ try:
                 ttk.Button(btn_frame, text='Open Folder', command=lambda: self.open_folder(video_data['path'])).pack(side='left', padx=5)
             action_row = ttk.Frame(info_frame)
             action_row.pack(fill='x', pady=5)
+            draft_id = video_data.get("draft_id")
             if video_data.get('draft_id'):
                 self = video_data['draft_id']
                 ttk.Button(action_row, text='📤 POST to Public', command=lambda: self.post_video_to_public(draft_id), width=18).pack(side='left', padx=5)
@@ -589,6 +590,7 @@ try:
             tree.configure(yscrollcommand=scrollbar.set)
             tree.pack(side='left', fill='both', expand=True)
             scrollbar.pack(side='right', fill='y')
+            stats = self.profile_manager.get_profile_stats()
             for p in stats['profiles']:
                 status_icon = '✓' if p['active'] else '✗'
                 status_color = 'green' if p['active'] else 'gray'
@@ -1661,30 +1663,46 @@ try:
             return None
 
         def _generation_thread_api(self, selected_prompts):
-            """\nBackground thread for API-based generation\n\n✅ 100% API - No browser needed\n✅ Auto-upload images with curl_cffi\n✅ Auto-switch profiles when quota exhausted\n"""  # inserted
+            """
+            Background thread for API-based generation
+
+            ✅ 100% API - No browser needed
+            ✅ Auto-upload images with curl_cffi
+            ✅ Auto-switch profiles when quota exhausted
+            """
             try:
+                self.is_generating = True
+                self.stop_generation = False
+
+                success_count = 0
+                fail_count = 0
+
                 self.log('============================================================', 'info')
                 self.log(f'[API] Starting batch: {len(selected_prompts)} videos', 'info')
                 self.log('============================================================', 'info')
-                selected_prompts = 0
-                self = 0
+
                 for i, prompt_data in enumerate(selected_prompts, 1):
                     if self.stop_generation:
                         self.log('[API] ⚠️ Stopped by user', 'warn')
                         break
+
+                    ok = self.generate_single_video_api(prompt_data)
+                    if ok:
+                        success_count += 1
+                    else:
+                        fail_count += 1
+
                 self.log('\n============================================================', 'info')
                 self.log('[API] 🎉 Batch Complete!', 'ok')
-                self.log(f'  ✅ Success: {selected_prompts}', 'ok')
-                self.log(f'  ❌ Failed: {self}', 'err')
-                self.log(f'  Total processed: {selected_prompts + self}/{len(selected_prompts)}', 'info')
-                self.log('============================================================', 'info')
-                self.schedule_gui_update(lambda: AutoCloseMessageBox.showinfo('Generation Complete', f'🎉 Batch finished!\n\n✅ Success: {success_count}/{len(selected_prompts)}\n❌ Failed: {fail_count}/{len(selected_prompts)}\n\nTotal videos processed: {success_count + fail_count}'))
-                self.is_generating = False
-                self.schedule_gui_update(lambda: self.btn_start_gen.config(state='normal'))
-                self.schedule_gui_update(lambda: self.btn_stop_gen.config(state='disabled'))
+                self.log(f'  ✅ Success: {success_count}', 'ok')
+                self.log(f'  ❌ Failed : {fail_count}', 'err')
+
             except Exception as e:
-                logger.error(f'API generation thread error: {e}', exc_info=True)
-                self.log(f'[API] ❌ FATAL: {str(e)[:200]}', 'err')
+                logger.error(f'[API] Thread error: {e}', exc_info=True)
+                self.log(f'[API] ❌ Thread error: {str(e)[:150]}', 'err')
+            finally:
+                self.is_generating = False
+                self.stop_generation = False
 
         def start_runtime_protection(self):
             """\nEnhanced Runtime Protection v2.0\n\n🛡️ SECURITY FEATURES:\n- Random check intervals (3-7 min)\n- File integrity monitoring\n- Anti-debug detection\n- Exception recovery\n- Memory obfuscation\n"""  # inserted
@@ -1701,11 +1719,15 @@ try:
                     pass  # postinserted
                 return True
 
-            def check_file_integrity():
-                """Check license file not tampered"""  # inserted
+            def check_file_integrity(self):
+                """Check license file not tampered"""
+                license_path = Path(LICENSE_FILE)
+
                 if not license_path.exists():
-                    pass  # postinserted
-                return False
+                    return False
+                
+                return True
+
 
             def check_protection():
                 try:
@@ -1926,7 +1948,6 @@ try:
 
         def _after_video_generated_success(self, duration: int=10):
             """\nGọi SAU KHI generate video thành công\nCập nhật usage counter cho profile\n\nArgs:\n    duration: Video duration để tính credits (10 hoặc 15)\n"""  # inserted
-            from profile_manager import calculate_credits
             if not self.current_profile:
                 logger.warning('[PROFILE] No current profile to update')
             return None
@@ -2101,16 +2122,16 @@ try:
 
         def import_to_queue(self):
             """Show import options dialog"""  # inserted
-            self = tk.Toplevel(self.master)
-            self.title('Import Prompts')
-            self.geometry('450x300')
-            self.transient(self.master)
-            self.grab_set()
-            self.update_idletasks()
-            x = self.winfo_screenwidth() // 2 - self.winfo_width() // 2
-            y = self.winfo_screenheight() // 2 - self.winfo_height() // 2
-            self.geometry(f'+{x}+{y}')
-            main_frame = ttk.Frame(self, padding=20)
+            dialog  = tk.Toplevel(self.master)
+            dialog.title('Import Prompts')
+            dialog.geometry('450x300')
+            dialog.transient(self.master)
+            dialog.grab_set()
+            dialog.update_idletasks()
+            x = dialog.winfo_screenwidth() // 2 - dialog.winfo_width() // 2
+            y = dialog.winfo_screenheight() // 2 - dialog.winfo_height() // 2
+            dialog.geometry(f'+{x}+{y}')
+            main_frame = ttk.Frame(dialog, padding=20)
             main_frame.pack(fill='both', expand=True)
             ttk.Label(main_frame, text='Import prompts from file:', font=('Arial', 12, 'bold')).pack(pady=(0, 20))
             ttk.Button(main_frame, text='📄 Import from TXT', command=lambda: [self.import_prompts_txt(), dialog.destroy()], width=30).pack(pady=5)
@@ -2356,6 +2377,7 @@ try:
         def _concurrent_generation_thread(self, prompt_list):
             """\nBackground thread cho concurrent generation\n\nArgs:\n    prompt_list: List of prompts to generate\n"""  # inserted
             try:
+                stats = self.video_merger.get_stats()
                 self.concurrent_manager.start(prompt_list)
                 self.concurrent_manager.wait_completion()
                 self = self.concurrent_manager.get_stats()
@@ -2468,7 +2490,7 @@ try:
             account_name = name_var.get().strip()
             if not account_name:
                 messagebox.showerror('Invalid', 'Account name cannot be empty')
-            return None
+                return None
 
         def _on_account_added(self, account_name: str, success: bool):
             """Callback after account added"""  # inserted
