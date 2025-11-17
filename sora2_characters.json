@@ -1,0 +1,21 @@
+{
+  "version": "1.0",
+  "last_updated": "2025-11-17T16:39:34.318166",
+  "total_characters": 1,
+  "characters": {
+    "local_char_1763372374": {
+      "character_id": "local_char_1763372374",
+      "cameo_id": "@thanh",
+      "username": "@thanh",
+      "display_name": "thanh",
+      "profile_url": "https://sora.chatgpt.com/@thanh",
+      "thumbnail_url": "",
+      "thumbnail_local_path": "sora2_character_thumbnails\\@thanh_20251117_163934.jpg",
+      "generation_id": null,
+      "visibility": "public",
+      "instruction_text": "andjnsa",
+      "created_at": "2025-11-17T16:39:34.318166",
+      "updated_at": "2025-11-17T16:39:34.318166"
+    }
+  }
+}

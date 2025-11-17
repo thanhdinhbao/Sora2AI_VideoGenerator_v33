@@ -1,4 +1,3 @@
-"""\nSora 2 AI Video Generator v28 - Full Edition (FIXED POPUPS)\n=============================================\nTrần Nguyên - Zalo: 0789.535.888\n\nVERSION 24 FEATURES:\n-------------------\n✅ Multi-Profile Management (5/10/15/20 profiles based on license)\n✅ Auto-switch profile when quota exhausted (30 videos/day/profile)\n✅ POST or DELETE draft after download\n✅ Profile statistics dashboard\n✅ License-based profile limits\n✅ Portable chrome_profile folder\n✅ Auto-detect existing profiles\n✅ FIXED: All popups with auto-close and timeout\n\nPOPUP FIXES:\n-----------\n✅ Confirmation dialogs: 3s timeout, default YES\n✅ Info dialogs: auto-close 3s\n✅ Warning dialogs: auto-close 5s\n❌ Error dialogs: NO changes (user must read)\n\nCHANGES FROM v22:\n-----------------\n+ ProfileManager integration\n+ Profile Stats UI in Settings tab\n+ Auto-rotation when quota reached\n+ get_license_features() import\n+ chrome_profile path = ./chrome_profile\n+ POST video feature with API client\n+ Draft action radio buttons (Delete/Post)\n\nINTEGRATION:\n-----------\n- sora2_license_system.py (with LICENSE_TIERS)\n- profile_manager.py (multi-profile management)\n- sora_api_client.py (POST video API)\n- text_to_video_tab.py (Text-to-Video tab)\n"""
 import os
 import json
 import time
@@ -635,49 +634,81 @@ try:
             self.status_bar.pack(fill='x', side='bottom')
 
         def build_settings_tab(self, parent: ttk.Frame):
-            """\nBuild Settings tab - 2 COLUMN LAYOUT VERSION\n\n✅ CỘT TRÁI: Language + Profile + Download Directory\n✅ CỘT PHẢI: Browser + API Account\n"""  # inserted
+            """
+            Build Settings tab - 2 COLUMN LAYOUT VERSION
+
+            ✅ CỘT TRÁI: Language + Profile + Download Directory
+            ✅ CỘT PHẢI: Browser + API Account
+            """
             main_container = ttk.Frame(parent)
             main_container.pack(fill='both', expand=True, padx=10, pady=10)
             main_container.columnconfigure(0, weight=1)
             main_container.columnconfigure(1, weight=1)
             main_container.rowconfigure(0, weight=1)
-            hw_id = tk.Canvas(main_container, borderwidth=0, bg='#E3F2FD')
-            left_scrollbar = ttk.Scrollbar(main_container, orient='vertical', command=hw_id.yview)
-            left_frame = ttk.Frame(hw_id)
-            left_frame.bind('<Configure>', lambda e: left_canvas.configure(scrollregion=left_canvas.bbox('all')))
-            hw_id.create_window((0, 0), window=left_frame, anchor='nw')
-            hw_id.configure(yscrollcommand=left_scrollbar.set)
-            hw_id.grid(row=0, column=0, sticky='nsew', padx=(0, 5))
+
+            # -------- LEFT SCROLLABLE COLUMN --------
+            left_canvas = tk.Canvas(main_container, borderwidth=0, bg='#E3F2FD', highlightthickness=0)
+            left_scrollbar = ttk.Scrollbar(main_container, orient='vertical', command=left_canvas.yview)
+            left_frame = ttk.Frame(left_canvas)
+
+            left_canvas.create_window((0, 0), window=left_frame, anchor='nw')
+            left_canvas.configure(yscrollcommand=left_scrollbar.set)
+
+            left_canvas.grid(row=0, column=0, sticky='nsew', padx=(0, 5))
             left_scrollbar.grid(row=0, column=0, sticky='nse')
 
+            def _on_left_configure(event):
+                left_canvas.configure(scrollregion=left_canvas.bbox('all'))
+
+            left_frame.bind('<Configure>', _on_left_configure)
+
             def _on_left_mousewheel(event):
-                left_canvas.yview_scroll(int((-1) * (event.delta / 120)), 'units')
-            hw_id.bind('<Enter>', lambda e: left_canvas.bind_all('<MouseWheel>', _on_left_mousewheel))
-            hw_id.bind('<Leave>', lambda e: left_canvas.unbind_all('<MouseWheel>'))
-            left_canvas = tk.Canvas(main_container, borderwidth=0, bg='#E3F2FD')
-            right_scrollbar = ttk.Scrollbar(main_container, orient='vertical', command=left_canvas.yview)
-            right_frame = ttk.Frame(left_canvas)
-            right_frame.bind('<Configure>', lambda e: right_canvas.configure(scrollregion=right_canvas.bbox('all')))
-            left_canvas.create_window((0, 0), window=right_frame, anchor='nw')
-            left_canvas.configure(yscrollcommand=right_scrollbar.set)
-            left_canvas.grid(row=0, column=1, sticky='nsew', padx=(5, 0))
+                left_canvas.yview_scroll(int(-event.delta / 120), 'units')
+
+            left_canvas.bind('<Enter>', lambda e: left_canvas.bind_all('<MouseWheel>', _on_left_mousewheel))
+            left_canvas.bind('<Leave>', lambda e: left_canvas.unbind_all('<MouseWheel>'))
+
+            # -------- RIGHT SCROLLABLE COLUMN --------
+            right_canvas = tk.Canvas(main_container, borderwidth=0, bg='#E3F2FD', highlightthickness=0)
+            right_scrollbar = ttk.Scrollbar(main_container, orient='vertical', command=right_canvas.yview)
+            right_frame = ttk.Frame(right_canvas)
+
+            right_canvas.create_window((0, 0), window=right_frame, anchor='nw')
+            right_canvas.configure(yscrollcommand=right_scrollbar.set)
+
+            right_canvas.grid(row=0, column=1, sticky='nsew', padx=(5, 0))
             right_scrollbar.grid(row=0, column=1, sticky='nse')
 
+            def _on_right_configure(event):
+                right_canvas.configure(scrollregion=right_canvas.bbox('all'))
+
+            right_frame.bind('<Configure>', _on_right_configure)
+
             def _on_right_mousewheel(event):
-                right_canvas.yview_scroll(int((-1) * (event.delta / 120)), 'units')
-            left_canvas.bind('<Enter>', lambda e: right_canvas.bind_all('<MouseWheel>', _on_right_mousewheel))
-            left_canvas.bind('<Leave>', lambda e: right_canvas.unbind_all('<MouseWheel>'))
+                right_canvas.yview_scroll(int(-event.delta / 120), 'units')
+
+            right_canvas.bind('<Enter>', lambda e: right_canvas.bind_all('<MouseWheel>', _on_right_mousewheel))
+            right_canvas.bind('<Leave>', lambda e: right_canvas.unbind_all('<MouseWheel>'))
+
+            # ================== BÊN TRÁI: LANGUAGE + PROFILE + DOWNLOAD DIR ==================
             lang_frame = ttk.LabelFrame(left_frame, text='🌐 ' + self.lang.get('language'), padding=20)
             lang_frame.pack(fill='x', pady=(0, 15))
+
             lang_row = ttk.Frame(lang_frame)
             lang_row.pack(fill='x', pady=10)
             ttk.Label(lang_row, text=self.lang.get('select_language') + ':', font=('Arial', 10)).pack(side='left', padx=(0, 10))
-            self.cmb_language = ttk.Combobox(lang_row, values=list(self.lang.get_available_languages().values()), state='readonly')
+            self.cmb_language = ttk.Combobox(
+                lang_row,
+                values=list(self.lang.get_available_languages().values()),
+                state='readonly'
+            )
             self.cmb_language.pack(side='left', fill='x', expand=True, padx=5)
             self.cmb_language.set('English')
             self.cmb_language.bind('<<ComboboxSelected>>', self.on_language_change)
+
             profile_frame = ttk.LabelFrame(left_frame, text='👤 ' + self.lang.get('profile_management_title'), padding=20)
             profile_frame.pack(fill='x', pady=(0, 15))
+
             create_row = ttk.Frame(profile_frame)
             create_row.pack(fill='x', pady=(0, 10))
             ttk.Label(create_row, text=self.lang.get('create_profiles_button') + ':', font=('Arial', 10, 'bold')).pack(side='left', padx=(0, 10))
@@ -685,40 +716,59 @@ try:
             ttk.Spinbox(create_row, from_=1, to=100, textvariable=self.var_num_profiles, width=10).pack(side='left', padx=5)
             ttk.Label(create_row, text=f"({self.lang.get('max')}: {self.profile_manager.max_profiles})").pack(side='left', padx=5)
             ttk.Button(create_row, text=self.lang.get('create_profiles_button'), command=self.create_profiles_action).pack(side='left', fill='x', expand=True, padx=10)
+
             stats = self.profile_manager.get_profile_stats()
-            profile_info = f"{self.lang.get('profiles')}: {stats['active_profiles']}/{stats['total_profiles']} {self.lang.get('active')} | {self.lang.get('quota')} {self.lang.get('today')}: {stats['credits_used_today']}/{stats['total_credits_quota']} | {self.lang.get('remaining')}: {stats['credits_remaining_today']}"
+            profile_info = (
+                f"{self.lang.get('profiles')}: {stats['active_profiles']}/{stats['total_profiles']} "
+                f"{self.lang.get('active')} | {self.lang.get('quota')} {self.lang.get('today')}: "
+                f"{stats['credits_used_today']}/{stats['total_credits_quota']} | "
+                f"{self.lang.get('remaining')}: {stats['credits_remaining_today']}"
+            )
             self.lbl_profile_info = ttk.Label(profile_frame, text=profile_info, foreground='blue', font=('Arial', 9))
             self.lbl_profile_info.pack(anchor='w', pady=(10, 0))
             ttk.Button(profile_frame, text=self.lang.get('view_profile_stats'), command=self.show_profile_stats).pack(fill='x', pady=(5, 0))
+
             download_frame = ttk.LabelFrame(left_frame, text=self.lang.get('download_dir'), padding=20)
             download_frame.pack(fill='both', expand=True, pady=(0, 15))
+
             system_frame = ttk.LabelFrame(left_frame, text='🔐 System Information', padding=20)
             system_frame.pack(fill='x', pady=(0, 15))
+
             try:
-                # from single_instance_lock import SingleInstanceLock
-                # lock_temp = SingleInstanceLock()
-                # _on_right_mousewheel = lock_temp._get_hardware_id()
+                # nếu bạn có SingleInstanceLock thì có thể lấy hw_id từ đó, tạm thời mình dùng placeholder
+                hw_id_value = 'CRACK_BY_THANH'
                 info_row = ttk.Frame(system_frame)
                 info_row.pack(fill='x', pady=5)
                 ttk.Label(info_row, text='Hardware ID:', font=('Arial', 10, 'bold')).pack(side='left', padx=(0, 10))
                 hw_id_entry = ttk.Entry(info_row, width=30, font=('Courier', 10))
                 hw_id_entry.pack(side='left', fill='x', expand=True, padx=5)
-                hw_id_entry.insert(0, _on_right_mousewheel)
+                hw_id_entry.insert(0, hw_id_value)
                 hw_id_entry.config(state='readonly')
 
                 def copy_hw_id():
                     self.master.clipboard_clear()
-                    self.master.clipboard_append(hw_id)
-                    self.log(f'📋 Hardware ID copied: {hw_id}', 'ok')
-                    messagebox.showinfo('Copied', f'✅ Hardware ID copied to clipboard!\n\n{hw_id}')
+                    self.master.clipboard_append(hw_id_value)
+                    self.log(f'📋 Hardware ID copied: {hw_id_value}', 'ok')
+                    messagebox.showinfo('Copied', f'✅ Hardware ID copied to clipboard!\n\n{hw_id_value}')
+
                 ttk.Button(info_row, text='📋 Copy', command=copy_hw_id, width=8).pack(side='left', padx=5)
-                ttk.Label(system_frame, text='ℹ️ Use this ID for license activation\nContact: Zalo 0789.535.888', font=('Arial', 8), foreground='blue', justify='left').pack(anchor='w', pady=(10, 0))
+                ttk.Label(
+                    system_frame,
+                    text='ℹ️ Use this ID for license activation\nContact: Zalo 0789.535.888',
+                    font=('Arial', 8),
+                    foreground='blue',
+                    justify='left'
+                ).pack(anchor='w', pady=(10, 0))
+            except Exception as e:
+                logger.error(f'[SETTINGS] System info error: {e}')
+
                 dir_row = ttk.Frame(download_frame)
                 dir_row.pack(fill='x', pady=5)
                 self.var_download_dir = tk.StringVar(value=self.config.get('download_dir', './downloads'))
                 ttk.Label(dir_row, text=self.lang.get('save_to')).pack(side='left', padx=(0, 10))
                 ttk.Entry(dir_row, textvariable=self.var_download_dir).pack(side='left', fill='x', expand=True, padx=5)
                 ttk.Button(dir_row, text=self.lang.get('browse_btn'), command=self.browse_download_dir, width=12).pack(side='left')
+                
                 browser_frame = ttk.LabelFrame(right_frame, text='🌐 Browser (One-Time Login Only)', padding=20)
                 browser_frame.pack(fill='x', pady=(0, 15))
                 ttk.Label(browser_frame, text='ℹ️ Use browser ONLY for first-time login\n✅ Login once → Save credentials → Close browser\n✅ After that, use 100% API mode!', font=('Arial', 9), foreground='blue', justify='left').pack(anchor='w', pady=(0, 10))
@@ -1047,76 +1097,211 @@ try:
                 return False
 
         def build_generation_tab(self, parent: ttk.Frame):
-            """Build Image-to-Video generation tab - FIXED VERSION"""  # inserted
+            """Build Image-to-Video generation tab - FIXED VERSION"""
+            # Khung chính
             main_frame = ttk.Frame(parent)
             main_frame.pack(fill='both', expand=True, padx=8, pady=8)
+
+            # ===== LEFT: SCROLLABLE SETTINGS PANEL =====
             left_container = ttk.Frame(main_frame, width=400)
             left_container.pack(side='left', fill='y', padx=(0, 8))
             left_container.pack_propagate(False)
-            canvas_window = tk.Canvas(left_container, bg='#E3F2FD', highlightthickness=0)
-            left_scrollbar = ttk.Scrollbar(left_container, orient='vertical', command=canvas_window.yview)
-            left_panel = ttk.Frame(canvas_window)
-            left_panel.bind('<Configure>', lambda e: left_canvas.configure(scrollregion=left_canvas.bbox('all')))
-            _on_mousewheel = canvas_window.create_window((0, 0), window=left_panel, anchor='nw')
-            canvas_window.configure(yscrollcommand=left_scrollbar.set)
+
+            left_canvas = tk.Canvas(left_container, bg='#E3F2FD', highlightthickness=0)
+            left_scrollbar = ttk.Scrollbar(left_container, orient='vertical', command=left_canvas.yview)
+
+            left_panel = ttk.Frame(left_canvas)
+            window_id = left_canvas.create_window((0, 0), window=left_panel, anchor='nw')
+
+            left_canvas.configure(yscrollcommand=left_scrollbar.set)
             left_scrollbar.pack(side='right', fill='y')
-            canvas_window.pack(side='left', fill='both', expand=True)
+            left_canvas.pack(side='left', fill='both', expand=True)
 
-            def _on_mousewheel(event):
-                left_canvas.yview_scroll(int((-1) * (event.delta / 120)), 'units')
-            canvas_window.bind('<Enter>', lambda e: left_canvas.bind_all('<MouseWheel>', _on_mousewheel))
-            canvas_window.bind('<Leave>', lambda e: left_canvas.unbind_all('<MouseWheel>'))
+            # Cập nhật scrollregion mỗi khi nội dung thay đổi
+            def _on_left_configure(event):
+                left_canvas.configure(scrollregion=left_canvas.bbox('all'))
 
+            left_panel.bind('<Configure>', _on_left_configure)
+
+            # Tự giãn chiều rộng theo canvas
             def _on_canvas_configure(event):
-                left_canvas.itemconfig(canvas_window, width=event.width)
-            canvas_window.bind('<Configure>', _on_canvas_configure)
+                left_canvas.itemconfig(window_id, width=event.width)
+
+            left_canvas.bind('<Configure>', _on_canvas_configure)
+
+            # Mouse wheel scroll
+            def _on_mousewheel(event):
+                left_canvas.yview_scroll(int(-event.delta / 120), 'units')
+
+            left_canvas.bind('<Enter>', lambda e: left_canvas.bind_all('<MouseWheel>', _on_mousewheel))
+            left_canvas.bind('<Leave>', lambda e: left_canvas.unbind_all('<MouseWheel>'))
+
+            # ===== NỘI DUNG TRONG LEFT PANEL =====
+
+            # Khung hình ảnh tham chiếu
             image_frame = ttk.LabelFrame(left_panel, text=self.lang.get('ref_images'), padding=10)
             image_frame.pack(fill='x', pady=(0, 8))
+
             img_btn_row1 = ttk.Frame(image_frame)
             img_btn_row1.pack(fill='x', pady=(0, 5))
-            ttk.Button(img_btn_row1, text=self.lang.get('add_images'), command=self.add_images, width=15).pack(side='left', padx=2)
-            ttk.Button(img_btn_row1, text=self.lang.get('get_paths'), command=self.get_image_paths, width=15).pack(side='left', padx=2)
+            ttk.Button(
+                img_btn_row1,
+                text=self.lang.get('add_images'),
+                command=self.add_images,
+                width=15
+            ).pack(side='left', padx=2)
+            ttk.Button(
+                img_btn_row1,
+                text=self.lang.get('get_paths'),
+                command=self.get_image_paths,
+                width=15
+            ).pack(side='left', padx=2)
+
             img_btn_row2 = ttk.Frame(image_frame)
             img_btn_row2.pack(fill='x')
-            ttk.Button(img_btn_row2, text=self.lang.get('clear_images'), command=self.clear_images, width=15).pack(side='left', padx=2)
-            self.lbl_image_count = ttk.Label(image_frame, text=f"📊 {self.lang.get('images')}: 0", foreground='blue', font=('Segoe UI', 9))
+            ttk.Button(
+                img_btn_row2,
+                text=self.lang.get('clear_images'),
+                command=self.clear_images,
+                width=15
+            ).pack(side='left', padx=2)
+
+            self.lbl_image_count = ttk.Label(
+                image_frame,
+                text=f"📊 {self.lang.get('images')}: 0",
+                foreground='blue',
+                font=('Segoe UI', 9)
+            )
             self.lbl_image_count.pack(anchor='w', pady=(8, 0))
+
+            # Khung cài đặt sinh video
             settings_frame = ttk.LabelFrame(left_panel, text=self.lang.get('gen_settings'), padding=10)
             settings_frame.pack(fill='x', pady=(0, 8))
+
             ttk.Label(settings_frame, text=self.lang.get('orientation') + ':').grid(row=0, column=0, sticky='w', pady=5)
-            self.cmb_orientation = ttk.Combobox(settings_frame, values=['landscape', 'portrait'], state='readonly', width=30)
+            self.cmb_orientation = ttk.Combobox(
+                settings_frame,
+                values=['landscape', 'portrait'],
+                state='readonly',
+                width=30
+            )
             self.cmb_orientation.grid(row=1, column=0, sticky='ew', pady=5)
             self.cmb_orientation.set('landscape')
+
             ttk.Label(settings_frame, text=self.lang.get('duration') + ':').grid(row=2, column=0, sticky='w', pady=5)
-            self.cmb_duration = ttk.Combobox(settings_frame, values=['10s', '15s'], state='readonly', width=30)
+            self.cmb_duration = ttk.Combobox(
+                settings_frame,
+                values=['10s', '15s'],
+                state='readonly',
+                width=30
+            )
             self.cmb_duration.grid(row=3, column=0, sticky='ew', pady=5)
             self.cmb_duration.set('10s')
+
+            if not hasattr(self, 'draft_action'):
+                self.draft_action = tk.StringVar(value='delete')
+
             ttk.Label(settings_frame, text=self.lang.get('draft_action_title')).grid(row=4, column=0, sticky='w', pady=(10, 5))
+            ttk.Radiobutton(
+                settings_frame,
+                text=self.lang.get('delete_draft_default'),
+                variable=self.draft_action,
+                value='delete'
+            ).grid(row=5, column=0, sticky='w', pady=2)
+            ttk.Radiobutton(
+                settings_frame,
+                text=self.lang.get('post_public'),
+                variable=self.draft_action,
+                value='post'
+            ).grid(row=6, column=0, sticky='w', pady=2)
+            ttk.Label(
+                settings_frame,
+                text=f"{self.lang.get('both_remove_draft')}\n{self.lang.get('post_requires_token')}",
+                font=('Arial', 8),
+                foreground='gray',
+                wraplength=280,
+                justify='left'
+            ).grid(row=7, column=0, sticky='w', pady=(5, 0))
+
             ttk.Separator(settings_frame, orient='horizontal').grid(row=8, column=0, sticky='ew', pady=10)
+
+            # Watermark-free download
             self.var_enable_wf_download = tk.BooleanVar(value=False)
-            ttk.Checkbutton(settings_frame, text=self.lang.get('download_no_watermark'), variable=self.var_enable_wf_download, command=self.toggle_wf_download).grid(row=9, column=0, sticky='w', pady=5)
+            ttk.Checkbutton(
+                settings_frame,
+                text=self.lang.get('download_no_watermark'),
+                variable=self.var_enable_wf_download,
+                command=self.toggle_wf_download
+            ).grid(row=9, column=0, sticky='w', pady=5)
+
             wf_info = f"{self.lang.get('only_works_post_mode')}\n{self.lang.get('videos_saved_to')}"
-            ttk.Label(settings_frame, text=wf_info, font=('Arial', 8), foreground='gray', wraplength=280, justify='left').grid(row=10, column=0, sticky='w', pady=(5, 0))
-            self.lbl_wf_stats_i2v = ttk.Label(settings_frame, text=f"{self.lang.get('stats')}: 0 {self.lang.get('total')} | 0 {self.lang.get('completed')} | 0 {self.lang.get('failed')}", font=('Arial', 8), foreground='blue')
+            ttk.Label(
+                settings_frame,
+                text=wf_info,
+                font=('Arial', 8),
+                foreground='gray',
+                wraplength=280,
+                justify='left'
+            ).grid(row=10, column=0, sticky='w', pady=(5, 0))
+
+            self.lbl_wf_stats_i2v = ttk.Label(
+                settings_frame,
+                text=f"{self.lang.get('stats')}: 0 {self.lang.get('total')} | 0 {self.lang.get('completed')} | 0 {self.lang.get('failed')}",
+                font=('Arial', 8),
+                foreground='blue'
+            )
             self.lbl_wf_stats_i2v.grid(row=11, column=0, sticky='w', pady=(5, 0))
 
             def update_wf_stats_i2v():
                 if hasattr(self, 'wf_integration'):
                     stats = self.wf_integration.get_stats()
-                    self.lbl_wf_stats_i2v.config(text=f"Stats: {stats['total']} total | {stats['completed']} completed | {stats['failed']} failed")
+                    self.lbl_wf_stats_i2v.config(
+                        text=f"Stats: {stats['total']} total | {stats['completed']} completed | {stats['failed']} failed"
+                    )
                 self.master.after(2000, update_wf_stats_i2v)
-            update_merger_stats_i2v()
+
+            update_wf_stats_i2v()
+
             ttk.Separator(settings_frame, orient='horizontal').grid(row=12, column=0, sticky='ew', pady=10)
+
+            # Video merger
             self.var_enable_merger = tk.BooleanVar(value=False)
-            ttk.Checkbutton(settings_frame, text=self.lang.get('enable_merger'), variable=self.var_enable_merger, command=self.toggle_video_merger).grid(row=13, column=0, sticky='w', pady=5)
+            ttk.Checkbutton(
+                settings_frame,
+                text=self.lang.get('enable_merger'),
+                variable=self.var_enable_merger,
+                command=self.toggle_video_merger
+            ).grid(row=13, column=0, sticky='w', pady=5)
+
             merger_batch_row = ttk.Frame(settings_frame)
             merger_batch_row.grid(row=14, column=0, sticky='w', pady=5, padx=(20, 0))
             ttk.Label(merger_batch_row, text=self.lang.get('batch_size')).pack(side='left', padx=(0, 5))
-            ttk.Spinbox(merger_batch_row, from_=2, to=20, textvariable=self.var_merge_batch_size, command=self.update_merger_batch_size, width=10).pack(side='left')
+            ttk.Spinbox(
+                merger_batch_row,
+                from_=2,
+                to=20,
+                textvariable=self.var_merge_batch_size,
+                command=self.update_merger_batch_size,
+                width=10
+            ).pack(side='left')
             ttk.Label(merger_batch_row, text=self.lang.get('videos_batch')).pack(side='left', padx=(5, 0))
+
             merger_info_i2v = f"{self.lang.get('auto_merge')}\n{self.lang.get('output_folder')}"
-            ttk.Label(settings_frame, text=merger_info_i2v, font=('Arial', 8), foreground='gray', wraplength=280, justify='left').grid(row=15, column=0, sticky='w', pady=(5, 0))
-            self.lbl_merger_stats_i2v = ttk.Label(settings_frame, text=self.lang.get('merger_disabled'), font=('Arial', 9, 'bold'), foreground='purple')
+            ttk.Label(
+                settings_frame,
+                text=merger_info_i2v,
+                font=('Arial', 8),
+                foreground='gray',
+                wraplength=280,
+                justify='left'
+            ).grid(row=15, column=0, sticky='w', pady=(5, 0))
+
+            self.lbl_merger_stats_i2v = ttk.Label(
+                settings_frame,
+                text=self.lang.get('merger_disabled'),
+                font=('Arial', 9, 'bold'),
+                foreground='purple'
+            )
             self.lbl_merger_stats_i2v.grid(row=16, column=0, sticky='w', pady=(5, 0))
 
             def update_merger_stats_i2v():
@@ -1124,46 +1309,88 @@ try:
                     stats = self.video_merger.get_stats()
                     buffer_size = len(self.video_merger.video_buffer)
                     batch_size = self.var_merge_batch_size.get()
-                    self.lbl_merger_stats_i2v.config(text=f"Merger: {stats['total']} batches | {stats['completed']} merged | {stats['pending']} pending | Buffer: {buffer_size}/{batch_size}")
+                    self.lbl_merger_stats_i2v.config(
+                        text=(
+                            f"Merger: {stats['total']} batches | {stats['completed']} merged | "
+                            f"{stats['pending']} pending | Buffer: {buffer_size}/{batch_size}"
+                        )
+                    )
                 self.master.after(2000, update_merger_stats_i2v)
-            left_canvas()
+
+            update_merger_stats_i2v()
+
             ttk.Separator(settings_frame, orient='horizontal').grid(row=17, column=0, sticky='ew', pady=10)
-            ttk.Checkbutton(settings_frame, text='⚡ Enable Concurrent Mode (2 workers parallel)', variable=self.var_enable_concurrent, command=self._on_concurrent_toggle).grid(row=18, column=0, sticky='w', pady=5)
-            self.lbl_concurrent_info = ttk.Label(settings_frame, text='✅ Faster but needs more CPU/RAM', foreground='green', font=('Arial', 8))
+
+            # Concurrent mode
+            ttk.Checkbutton(
+                settings_frame,
+                text='⚡ Enable Concurrent Mode (2 workers parallel)',
+                variable=self.var_enable_concurrent,
+                command=self._on_concurrent_toggle
+            ).grid(row=18, column=0, sticky='w', pady=5)
+
+            self.lbl_concurrent_info = ttk.Label(
+                settings_frame,
+                text='✅ Faster but needs more CPU/RAM',
+                foreground='green',
+                font=('Arial', 8)
+            )
             self.lbl_concurrent_info.grid(row=19, column=0, sticky='w', pady=(0, 5))
-            if not hasattr(self, 'draft_action'):
-                self.draft_action = tk.StringVar(value='delete')
-            ttk.Radiobutton(settings_frame, text=self.lang.get('delete_draft_default'), variable=self.draft_action, value='delete').grid(row=5, column=0, sticky='w', pady=2)
-            ttk.Radiobutton(settings_frame, text=self.lang.get('post_public'), variable=self.draft_action, value='post').grid(row=6, column=0, sticky='w', pady=2)
-            ttk.Label(settings_frame, text=f"{self.lang.get('both_remove_draft')}\n{self.lang.get('post_requires_token')}", font=('Arial', 8), foreground='gray', wraplength=280, justify='left').grid(row=7, column=0, sticky='w', pady=(5, 0))
+
             settings_frame.columnconfigure(0, weight=1)
-            settings_frame.columnconfigure(0, weight=1)
+
+            # ===== PROMPT FRAME =====
             prompt_frame = ttk.LabelFrame(left_panel, text=self.lang.get('prompts_title'), padding=10)
             prompt_frame.pack(fill='both', expand=True, pady=(0, 8))
+
             import_row = ttk.Frame(prompt_frame)
             import_row.pack(fill='x', pady=(0, 5))
             ttk.Button(import_row, text=self.lang.get('import_txt'), command=self.import_to_queue).pack(side='left', padx=2)
             ttk.Button(import_row, text=self.lang.get('import_excel'), command=self.import_to_queue).pack(side='left', padx=2)
+
             ttk.Label(prompt_frame, text=self.lang.get('enter_prompt'), font=('Segoe UI', 9)).pack(anchor='w', pady=(0, 3))
             self.txt_prompt = ScrolledText(prompt_frame, height=8, wrap=tk.WORD, font=('Segoe UI', 10))
             self.txt_prompt.pack(fill='both', expand=True, pady=(0, 10))
+
             ctrl_frame = ttk.Frame(prompt_frame)
             ctrl_frame.pack(fill='x')
-            ttk.Button(ctrl_frame, text=self.lang.get('add_to_queue'), command=self.add_prompt_to_queue, width=18).pack(side='left', padx=2)
-            self.btn_start_gen = ttk.Button(ctrl_frame, text=self.lang.get('start_gen'), command=self.start_generation, width=18, style='Accent.TButton')
+            ttk.Button(
+                ctrl_frame,
+                text=self.lang.get('add_to_queue'),
+                command=self.add_prompt_to_queue,
+                width=18
+            ).pack(side='left', padx=2)
+            self.btn_start_gen = ttk.Button(
+                ctrl_frame,
+                text=self.lang.get('start_gen'),
+                command=self.start_generation,
+                width=18,
+                style='Accent.TButton'
+            )
             self.btn_start_gen.pack(side='left', padx=2)
-            self.btn_stop_gen = ttk.Button(ctrl_frame, text=self.lang.get('stop'), command=self.stop_generation_process, width=10, state='disabled')
+            self.btn_stop_gen = ttk.Button(
+                ctrl_frame,
+                text=self.lang.get('stop'),
+                command=self.stop_generation_process,
+                width=10,
+                state='disabled'
+            )
             self.btn_stop_gen.pack(side='left', padx=2)
+
+            # ===== RIGHT PANEL: QUEUE TABLE + LOG =====
             right_panel = ttk.Frame(main_frame)
             right_panel.pack(side='right', fill='both', expand=True)
+
             table_controls = ttk.Frame(right_panel)
             table_controls.pack(fill='x', pady=(0, 5))
             ttk.Button(table_controls, text=self.lang.get('select_all'), command=self.select_all_prompts, width=12).pack(side='left', padx=2)
             ttk.Button(table_controls, text=self.lang.get('deselect_all'), command=self.deselect_all_prompts, width=12).pack(side='left', padx=2)
             ttk.Button(table_controls, text=self.lang.get('delete_selected'), command=self.table_delete_selected, width=15).pack(side='left', padx=2)
             ttk.Button(table_controls, text=self.lang.get('clear_all'), command=self.clear_queue, width=12).pack(side='left', padx=2)
+
             table_container = ttk.Frame(right_panel)
             table_container.pack(fill='both', expand=True, pady=(0, 8))
+
             self.table_canvas = tk.Canvas(table_container, bg='#E3F2FD', highlightthickness=1)
             scrollbar_y = ttk.Scrollbar(table_container, orient='vertical', command=self.table_canvas.yview)
             scrollbar_x = ttk.Scrollbar(table_container, orient='horizontal', command=self.table_canvas.xview)
@@ -1171,18 +1398,22 @@ try:
             scrollbar_y.pack(side='right', fill='y')
             scrollbar_x.pack(side='bottom', fill='x')
             self.table_canvas.pack(side='left', fill='both', expand=True)
+
             self.table_inner_frame = ttk.Frame(self.table_canvas)
             self.table_canvas_window = self.table_canvas.create_window((0, 0), window=self.table_inner_frame, anchor='nw')
 
             def configure_canvas(event):
                 self.table_canvas.configure(scrollregion=self.table_canvas.bbox('all'))
                 self.table_canvas.itemconfig(self.table_canvas_window, width=event.width)
+
             self.table_canvas.bind('<Configure>', configure_canvas)
             self.table_inner_frame.bind('<Configure>', lambda e: self.table_canvas.configure(scrollregion=self.table_canvas.bbox('all')))
             self.table_canvas.bind('<MouseWheel>', lambda e: self.table_canvas.yview_scroll(int((-1) * (e.delta / 120)), 'units'))
+
             header = ttk.Frame(self.table_inner_frame, relief='raised', borderwidth=1)
             header.pack(fill='x', pady=(0, 2))
             header.columnconfigure(3, weight=1)
+
             ttk.Label(header, text='[ ]', width=3, anchor='center', font=('Segoe UI', 9, 'bold')).grid(row=0, column=0, padx=5, pady=8, sticky='w')
             ttk.Label(header, text=self.lang.get('no_dot'), width=5, anchor='center', font=('Segoe UI', 9, 'bold')).grid(row=0, column=1, padx=5, pady=8, sticky='w')
             ttk.Label(header, text=self.lang.get('ref_image'), width=12, anchor='center', font=('Segoe UI', 9, 'bold')).grid(row=0, column=2, padx=5, pady=8, sticky='w')
@@ -1190,6 +1421,7 @@ try:
             ttk.Label(header, text=self.lang.get('status'), anchor='center', font=('Segoe UI', 9, 'bold')).grid(row=0, column=4, padx=5, pady=8, sticky='e')
             ttk.Label(header, text=self.lang.get('video_preview'), anchor='center', font=('Segoe UI', 9, 'bold')).grid(row=0, column=5, padx=5, pady=8, sticky='e')
             ttk.Label(header, text=self.lang.get('actions'), width=10, anchor='center', font=('Segoe UI', 9, 'bold')).grid(row=0, column=6, padx=5, pady=8, sticky='e')
+
             log_frame = ttk.LabelFrame(right_panel, text=self.lang.get('gen_log'), padding=10)
             log_frame.pack(fill='x')
             self.log_text = ScrolledText(log_frame, height=6, font=('Consolas', 9))
