@@ -74,8 +74,8 @@ try:
     from sora2_license_system import check_activation, show_activation_dialog, get_hardware_id, LICENSE_FILE, get_license_features
     from sora2_protection_system import ProtectionSystem
     from sora2_hash import EXPECTED_EXE_HASH
-    protection_system = ProtectionSystem(enable_integrity_check=True, enable_anti_debug=False)
-    LICENSE_ENABLED = True
+    protection_system = ProtectionSystem(enable_integrity_check=False, enable_anti_debug=False)
+    LICENSE_ENABLED = False
     logger.info('[LICENSE] Security initialized')
     APP_NAME = 'Sora 2 Video Generator v28 - Multi-Profile Zalo: 0789.535.888'
     CONFIG_PATH = Path(get_config_path('sora_browser_config.json'))
@@ -184,10 +184,6 @@ try:
 
     class BrowserManager:
         """\nBrowser automation for Sora website\nHandles login, video generation, download, and cleanup\n"""
-        pass
-        pass
-        pass
-        pass
         def __init__(self, headless: bool=False, driver=None, download_dir: str=None, profile_path: str=None):
             """Initialize browser manager"""  # inserted
             self.headless = headless
@@ -414,7 +410,7 @@ try:
                     master.destroy()
                 return None
             license_features = get_license_features()
-            max_profiles = license_features.get('max_profiles', 5)
+            max_profiles = license_features.get('max_profiles', 99999)
             logger.info('[LICENSE] Features loaded')
             CHROME_PROFILES_DIR.mkdir(parents=True, exist_ok=True)
             logger.info(f'[PROFILE] Chrome profiles dir: {CHROME_PROFILES_DIR}')
@@ -452,17 +448,17 @@ try:
             self.var_enable_merger = tk.BooleanVar(value=False)
             self.var_merge_batch_size = tk.IntVar(value=5)
             self.var_concurrent_mode = tk.BooleanVar(value=False)
-            self.wf_integration = WatermarkFreeIntegration(self)
+
             try:
-                default_profile = 'Profile_1'
-                if default_profile in self.credential_manager.list_profiles():
-                    logger.info(f'[INIT] 🔄 Auto-loading {default_profile}...')
-                    if not hasattr(self, 'api_manager') or not self.api_manager:
-                        from api_generation_manager import APIGenerationManager
-                        self.api_manager = APIGenerationManager(self.credential_manager)
-                    success = self.api_manager.set_account(default_profile)
-                    if success:
-                        logger.info(f'[INIT] ✅ {default_profile} ready for API!')
+                # default_profile = 'Profile_1'
+                # if default_profile in self.credential_manager.list_profiles():
+                #     logger.info(f'[INIT] 🔄 Auto-loading {default_profile}...')
+                #     if not hasattr(self, 'api_manager') or not self.api_manager:
+                #         from api_generation_manager import APIGenerationManager
+                #         self.api_manager = APIGenerationManager(self.credential_manager)
+                #     success = self.api_manager.set_account(default_profile)
+                #     if success:
+                #         logger.info(f'[INIT] ✅ {default_profile} ready for API!')
                     self.build_ui()
                     self.process_gui_queue()
                     self.master.protocol('WM_DELETE_WINDOW', self.on_closing)
@@ -699,9 +695,9 @@ try:
             system_frame = ttk.LabelFrame(left_frame, text='🔐 System Information', padding=20)
             system_frame.pack(fill='x', pady=(0, 15))
             try:
-                from single_instance_lock import SingleInstanceLock
-                lock_temp = SingleInstanceLock()
-                _on_right_mousewheel = lock_temp._get_hardware_id()
+                # from single_instance_lock import SingleInstanceLock
+                # lock_temp = SingleInstanceLock()
+                # _on_right_mousewheel = lock_temp._get_hardware_id()
                 info_row = ttk.Frame(system_frame)
                 info_row.pack(fill='x', pady=5)
                 ttk.Label(info_row, text='Hardware ID:', font=('Arial', 10, 'bold')).pack(side='left', padx=(0, 10))
@@ -2146,34 +2142,36 @@ try:
                 self.log(f'[ERROR] {str(e)[:100]}', 'err')
 
     def main():
-        lock = SingleInstanceLock(app_name='Sora2AI_VideoGenerator_v33', port=59999, enable_admin_bypass=False, enable_whitelist=True)
-        if not lock.acquire():
-            show_already_running_dialog()
-            sys.exit(0)
-        hw_id = lock._get_hardware_id()
-        print('=' * 60)
-        print(f'🔑 Hardware ID của máy này: {hw_id}')
-        print('=' * 60)
         try:
             root = tk.Tk()
+
+            # cố gắng set icon, nếu lỗi thì bỏ qua
             try:
                 root.iconbitmap('icon.ico')
-                app = App(root)
-
-                def on_closing():
-                    lock.release()
-                    root.destroy()
-                root.protocol('WM_DELETE_WINDOW', on_closing)
-                root.mainloop()
-                lock.release()
-            except:
+            except Exception:
                 pass
+
+            app = App(root)
+
+            def on_closing():
+                # lock.release()
+                root.destroy()
+
+            root.protocol('WM_DELETE_WINDOW', on_closing)
+            root.mainloop()
+
+            # lock.release()
+
         except KeyboardInterrupt:
             logger.info('Interrupted by user')
-            lock.release()
+            # lock.release()
             sys.exit(0)
-    if __name__ == '__main__':
-        main()
+        except Exception as e:
+            logger.error(f'App crashed: {e}')
+            # lock.release()
+            sys.exit(1)
+
+
 
         def _setup_account_management_ui(self, parent_frame):
             """Setup Account Management UI - thay cho browser controls"""  # inserted
@@ -2272,10 +2270,6 @@ try:
                 return None
             except Exception as e:
                 logger.error(f'Check account error: {e}')
-except ImportError:
-    SELENIUM_AVAILABLE = False
-except ImportError:
-    PIL_AVAILABLE = False
 except ImportError as e:
     import sys
     import random
@@ -2290,3 +2284,6 @@ except ImportError as e:
     sys.exit(1)
     protection_system = ProtectionSystem()
     EXPECTED_EXE_HASH = ''
+
+if __name__ == '__main__':
+    main()

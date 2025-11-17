@@ -516,9 +516,9 @@ def get_license_features() -> dict:
         # Return FREE tier as default
         return {
             'tier': 'FREE',
-            'max_profiles': 1,
+            'max_profiles': 99999,
             'max_characters': 5,  # NEW: Character limit (5 chars per profile)
-            'max_videos_per_day': 30,
+            'max_videos_per_day': 100000,
             'features': ['basic_generation'],
             'expiry_date': 'N/A',
             'days_remaining': 0,
